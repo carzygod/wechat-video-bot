@@ -6,6 +6,8 @@ import { SubscriptionModel } from "../models/Subscription.js";
 import { VideoModel, type VideoDocument } from "../models/Video.js";
 import { VideoLibraryService } from "./videoLibrary.js";
 
+const HERO_IMAGE_PATH = new URL("../res/hero.png", import.meta.url);
+
 type PendingLoginJob = {
   subscriptionId: string;
   bot: WeixinBot;
@@ -142,20 +144,14 @@ export class WeixinHubService {
     }
 
     await this.flushPendingVideos(subscriptionId, message.chat.id);
-    const randomVideo = await this.library.pickRandomVideo();
-    if (randomVideo) {
-      const subscription = await SubscriptionModel.findById(subscriptionId);
-      if (subscription) {
-        await this.pushOrQueueVideo(subscription, randomVideo, message.chat.id);
-      }
+    const subscription = await SubscriptionModel.findById(subscriptionId);
+    if (subscription) {
+      await this.trySendHeroImage(subscription, message.chat.id);
     }
   }
 
   private async queueRandomWelcomeVideo(subscription: SubscriptionLike): Promise<void> {
-    const randomVideo = await this.library.pickRandomVideo();
-    if (randomVideo) {
-      await this.pushOrQueueVideo(subscription, randomVideo);
-    }
+    await this.trySendHeroImage(subscription);
   }
 
   private async flushPendingVideos(subscriptionId: string, chatId: string): Promise<void> {
@@ -234,6 +230,45 @@ export class WeixinHubService {
       console.error("[weixin] push failed", {
         subscriptionId: String(subscription._id),
         videoId: String(video._id),
+        error,
+      });
+      return false;
+    }
+  }
+
+  private async trySendHeroImage(
+    subscription: SubscriptionLike,
+    chatId?: string,
+  ): Promise<boolean> {
+    const bot = this.activeBots.get(String(subscription._id));
+    if (!bot) {
+      return false;
+    }
+
+    const targetChatId = chatId ?? subscription.weixinUserId ?? undefined;
+    if (!targetChatId) {
+      return false;
+    }
+
+    try {
+      const result = await bot.sendPhoto(targetChatId, HERO_IMAGE_PATH, {
+        contentType: "image/png",
+      });
+      console.info("[weixin] hero image sent", {
+        subscriptionId: String(subscription._id),
+        messageId: result.messageId,
+        targetChatId,
+        heroImagePath: HERO_IMAGE_PATH.pathname,
+      });
+      return true;
+    } catch (error) {
+      if (error instanceof MissingContextTokenError) {
+        return false;
+      }
+      console.error("[weixin] hero image push failed", {
+        subscriptionId: String(subscription._id),
+        targetChatId,
+        heroImagePath: HERO_IMAGE_PATH.pathname,
         error,
       });
       return false;
