@@ -6,7 +6,7 @@
 - 后端：`TypeScript + Express`
 - 数据库：`MongoDB`
 - 登录：`twitter-api-sdk` 驱动的 X OAuth
-- 微信订阅：基于本地 `weixin-claw-bot-sdk`
+- 微信订阅：基于 npm 包 `weixin-claw-bot-sdk`
 - 内容源：抓取一个合法公开视频站点中的随机视频
 
 默认的随机视频源配置为：
@@ -120,6 +120,12 @@ npm install
 - 根工作区依赖
 - `frontend/` 依赖
 - `backend/` 依赖
+
+说明：
+
+- `backend/` 现在直接依赖 npm registry 上的 `weixin-claw-bot-sdk`
+- 部署时执行 `npm install` 会自动安装该 SDK
+- 确保服务器能访问 npm registry，或配置好你自己的镜像源
 
 ## 5. 开发启动
 

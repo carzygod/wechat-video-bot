@@ -123,15 +123,15 @@ export class WeixinHubService {
     const subscriptionId = String(subscription._id);
     this.activeBots.set(subscriptionId, bot);
 
-    bot.on("message", (message) => {
+    bot.on("message", (message: WeixinBotMessage) => {
       void this.handleInboundMessage(subscriptionId, message, session.accountId);
     });
 
-    bot.on("polling_error", (error) => {
+    bot.on("polling_error", (error: unknown) => {
       console.error("[weixin] polling error", { subscriptionId, error });
     });
 
-    void bot.startPolling().catch((error) => {
+    void bot.startPolling().catch((error: unknown) => {
       console.error("[weixin] failed to start polling", { subscriptionId, error });
     });
   }
