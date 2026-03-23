@@ -13,22 +13,41 @@ export function getSessionCookieName(): string {
   return COOKIE_NAME;
 }
 
-export function requireAuth(req: Request, res: Response, next: NextFunction): void {
-  const token = req.cookies?.[COOKIE_NAME];
+function getRequestToken(req: Request): string | null {
+  const authHeader = req.headers.authorization;
+  if (typeof authHeader === "string" && authHeader.toLowerCase().startsWith("bearer ")) {
+    return authHeader.slice(7).trim();
+  }
+
+  const cookieToken = req.cookies?.[COOKIE_NAME];
+  if (typeof cookieToken === "string" && cookieToken.trim()) {
+    return cookieToken;
+  }
+
+  return null;
+}
+
+export function readAuthUserId(req: Request): string | null {
+  const token = getRequestToken(req);
   if (!token) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
+    return null;
   }
 
   try {
     const payload = jwt.verify(token, env.JWT_SECRET) as { sub?: string };
-    if (!payload.sub) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-    req.auth = { userId: payload.sub };
-    next();
+    return payload.sub ?? null;
   } catch {
-    res.status(401).json({ error: "Unauthorized" });
+    return null;
   }
+}
+
+export function requireAuth(req: Request, res: Response, next: NextFunction): void {
+  const userId = readAuthUserId(req);
+  if (!userId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  req.auth = { userId };
+  next();
 }

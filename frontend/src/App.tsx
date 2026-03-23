@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { api, type CurrentUser, type SubscriptionQr, type VideoItem } from "./api";
+import {
+  api,
+  apiUrl,
+  getAuthToken,
+  setAuthToken,
+  type CurrentUser,
+  type SubscriptionQr,
+  type VideoItem,
+} from "./api";
 
 function formatRemaining(expiresAt: string) {
   const diff = Math.max(0, new Date(expiresAt).getTime() - Date.now());
@@ -13,11 +21,40 @@ export default function App() {
   const [qr, setQr] = useState<SubscriptionQr | null>(null);
   const [loadingQr, setLoadingQr] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const xLoginUrl = useMemo(() => apiUrl("/api/auth/x/login"), []);
 
   useEffect(() => {
+    const currentUrl = new URL(window.location.href);
+    const loginToken = currentUrl.searchParams.get("token");
+    const loginStatus = currentUrl.searchParams.get("login");
+    const loginReason = currentUrl.searchParams.get("reason");
+
+    if (loginToken) {
+      setAuthToken(loginToken);
+    }
+
+    if (loginStatus === "failed") {
+      setError(loginReason || "X login failed");
+    }
+
+    if (loginToken || loginStatus || loginReason) {
+      currentUrl.searchParams.delete("token");
+      currentUrl.searchParams.delete("login");
+      currentUrl.searchParams.delete("reason");
+      window.history.replaceState({}, document.title, currentUrl.toString());
+    }
+
     void api.getCurrentUser()
-      .then((payload) => setUser(payload.user))
-      .catch(() => setUser(null));
+      .then((payload) => {
+        setUser(payload.user);
+        if (!payload.user && getAuthToken()) {
+          setAuthToken(null);
+        }
+      })
+      .catch(() => {
+        setUser(null);
+        setAuthToken(null);
+      });
 
     void api.getRecentVideos()
       .then((payload) => setVideos(payload.videos))
@@ -80,7 +117,7 @@ export default function App() {
             </p>
             <div className="cta-row">
               {!user ? (
-                <a className="cta-primary" href="/api/auth/x/login">
+                <a className="cta-primary" href={xLoginUrl}>
                   使用 X 登录
                 </a>
               ) : (

@@ -23,13 +23,31 @@ export type SubscriptionQr = {
   weixinUserId?: string;
 };
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
+const AUTH_TOKEN_KEY = "91bot_auth_token";
+
+export function apiUrl(path: string): string {
+  return `${API_BASE}${path}`;
+}
+
+export function getAuthToken(): string | null {
+  return window.localStorage.getItem(AUTH_TOKEN_KEY);
+}
+
+export function setAuthToken(token: string | null): void {
+  if (!token) {
+    window.localStorage.removeItem(AUTH_TOKEN_KEY);
+    return;
+  }
+  window.localStorage.setItem(AUTH_TOKEN_KEY, token);
+}
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
-    credentials: "include",
+  const token = getAuthToken();
+  const response = await fetch(apiUrl(path), {
     headers: {
       "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(init?.headers ?? {}),
     },
     ...init,

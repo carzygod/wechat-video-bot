@@ -8,7 +8,7 @@ import mongoose from "mongoose";
 import morgan from "morgan";
 
 import { env } from "./config/env.js";
-import { requireAuth } from "./middleware/auth.js";
+import { readAuthUserId, requireAuth } from "./middleware/auth.js";
 import { UserModel } from "./models/User.js";
 import { authRouter } from "./routes/auth.js";
 import { createSubscriptionRouter } from "./routes/subscriptions.js";
@@ -46,10 +46,12 @@ app.get("/api/health", (_req, res) => {
 });
 
 app.get("/api/me", (req, res, next) => {
-  if (!req.cookies?.["91bot_auth"]) {
+  const userId = readAuthUserId(req);
+  if (!userId) {
     res.json({ user: null });
     return;
   }
+  req.auth = { userId };
   requireAuth(req, res, () => next());
 }, async (req, res) => {
   const user = await UserModel.findById(req.auth!.userId).lean();

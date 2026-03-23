@@ -1,7 +1,7 @@
 import { Router } from "express";
 
 import { env } from "../config/env.js";
-import { getSessionCookieName, signSessionToken } from "../middleware/auth.js";
+import { signSessionToken } from "../middleware/auth.js";
 import { UserModel } from "../models/User.js";
 import { createTwitterLoginUrl, handleTwitterCallback } from "../services/twitterAuth.js";
 
@@ -18,15 +18,16 @@ authRouter.get("/x/callback", async (req, res) => {
       code: typeof req.query.code === "string" ? req.query.code : undefined,
     });
 
-    res.cookie(getSessionCookieName(), signSessionToken(String(user._id)), {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: false,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-    res.redirect(`${env.FRONTEND_URL}?login=success`);
+    const token = signSessionToken(String(user._id));
+    const redirectUrl = new URL(env.FRONTEND_URL);
+    redirectUrl.searchParams.set("login", "success");
+    redirectUrl.searchParams.set("token", token);
+    res.redirect(redirectUrl.toString());
   } catch (error) {
-    res.redirect(`${env.FRONTEND_URL}?login=failed&reason=${encodeURIComponent(error instanceof Error ? error.message : "x-login-failed")}`);
+    const redirectUrl = new URL(env.FRONTEND_URL);
+    redirectUrl.searchParams.set("login", "failed");
+    redirectUrl.searchParams.set("reason", error instanceof Error ? error.message : "x-login-failed");
+    res.redirect(redirectUrl.toString());
   }
 });
 
