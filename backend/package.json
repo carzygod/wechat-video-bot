@@ -19,7 +19,7 @@
     "mongoose": "^8.10.1",
     "morgan": "^1.10.0",
     "twitter-api-sdk": "^1.2.1",
-    "weixin-claw-bot-sdk": "^0.2.0",
+    "weixin-claw-bot-sdk": "^0.3.0",
     "zod": "^3.24.2"
   },
   "devDependencies": {
