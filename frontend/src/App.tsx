@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import QRCode from "qrcode";
 
 import {
   api,
@@ -19,6 +20,7 @@ export default function App() {
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [qr, setQr] = useState<SubscriptionQr | null>(null);
+  const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
   const [loadingQr, setLoadingQr] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const xLoginUrl = useMemo(() => apiUrl("/api/auth/x/login"), []);
@@ -76,6 +78,38 @@ export default function App() {
 
     return () => window.clearInterval(timer);
   }, [qr]);
+
+  useEffect(() => {
+    if (!qr?.qrCodeUrl) {
+      setQrImageUrl(null);
+      return;
+    }
+
+    let cancelled = false;
+    void QRCode.toDataURL(qr.qrCodeUrl, {
+      errorCorrectionLevel: "M",
+      margin: 2,
+      width: 280,
+      color: {
+        dark: "#111111",
+        light: "#ffffff",
+      },
+    })
+      .then((nextUrl: string) => {
+        if (!cancelled) {
+          setQrImageUrl(nextUrl);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setQrImageUrl(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [qr?.qrCodeUrl]);
 
   const statusLabel = useMemo(() => {
     if (!qr) return "Not generated";
@@ -154,7 +188,12 @@ export default function App() {
                     <div className="status-line">{statusLabel}</div>
                     {qr ? (
                       <div className="qr-frame glass">
-                        <img src={qr.qrCodeUrl} alt="Weixin subscription QR" />
+                        <div className="qr-visual">
+                          {qrImageUrl ? <img src={qrImageUrl} alt="Weixin subscription QR" /> : <div className="qr-loading">Generating QR...</div>}
+                          <a className="qr-link" href={qr.qrCodeUrl} target="_blank" rel="noreferrer">
+                            Open raw subscription link
+                          </a>
+                        </div>
                       </div>
                     ) : (
                       <div className="qr-placeholder">Generate a 5-minute QR link to bind your Weixin bot.</div>

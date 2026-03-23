@@ -256,10 +256,37 @@ h1 {
   place-items: center;
 }
 
-.qr-frame img {
+.qr-visual {
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+}
+
+.qr-visual img {
   width: 100%;
   max-width: 280px;
+  height: auto;
   border-radius: 20px;
+  background: #fff;
+  padding: 14px;
+}
+
+.qr-loading {
+  width: 100%;
+  max-width: 280px;
+  min-height: 280px;
+  display: grid;
+  place-items: center;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #cabf9a;
+}
+
+.qr-link {
+  color: #ffcf59;
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .qr-placeholder,
