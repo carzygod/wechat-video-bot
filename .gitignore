@@ -4,5 +4,12 @@ frontend/dist/
 backend/node_modules/
 backend/dist/
 backend/.env
+backend/.env.local
+backend/.env.*
+!backend/.env.example
+frontend/.env
+frontend/.env.local
+frontend/.env.*
+!frontend/.env.example
 video/*
 !video/.gitkeep
