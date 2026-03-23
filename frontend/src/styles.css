@@ -1,0 +1,366 @@
+:root {
+  color-scheme: dark;
+  font-family: "Space Grotesk", "Sora", sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(255, 190, 32, 0.18), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(255, 222, 89, 0.1), transparent 25%),
+    linear-gradient(180deg, #0b0b0c 0%, #101012 55%, #080809 100%);
+  color: #f8f1d0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+}
+
+.page-shell {
+  position: relative;
+  min-height: 100vh;
+  padding: 40px 28px 64px;
+  overflow: hidden;
+}
+
+.backdrop-orb {
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.orb-a {
+  top: -80px;
+  left: -50px;
+  background: rgba(255, 186, 36, 0.24);
+}
+
+.orb-b {
+  right: -60px;
+  bottom: 80px;
+  background: rgba(179, 133, 0, 0.16);
+}
+
+.hero-card,
+.feed-card,
+.feature-card {
+  position: relative;
+  z-index: 1;
+}
+
+.glass {
+  background: rgba(20, 20, 22, 0.68);
+  border: 1px solid rgba(255, 215, 87, 0.12);
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(22px);
+}
+
+.neu {
+  background: linear-gradient(145deg, #121214, #0b0b0d);
+  box-shadow:
+    24px 24px 48px rgba(0, 0, 0, 0.55),
+    -14px -14px 34px rgba(255, 200, 70, 0.04),
+    inset 0 1px 0 rgba(255, 240, 190, 0.06);
+}
+
+.glass-inset {
+  background: rgba(8, 8, 10, 0.58);
+  border: 1px solid rgba(255, 217, 112, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(18px);
+}
+
+.hero-card {
+  border-radius: 36px;
+  padding: 28px 28px 24px;
+}
+
+.brand-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.brand-pill {
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(255, 196, 31, 0.14);
+  color: #ffd977;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.brand-pill.muted {
+  background: rgba(255, 255, 255, 0.06);
+  color: #d2c9a4;
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 22px;
+}
+
+h1,
+h2 {
+  margin: 0;
+  font-family: "Sora", sans-serif;
+}
+
+h1 {
+  font-size: clamp(48px, 8vw, 108px);
+  line-height: 0.92;
+  letter-spacing: -0.06em;
+  color: #ffcc3b;
+  text-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+}
+
+.lede {
+  max-width: 760px;
+  margin: 18px 0 0;
+  color: #ddd2b0;
+  font-size: 18px;
+  line-height: 1.75;
+}
+
+.cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 28px;
+}
+
+.cta-primary,
+.cta-secondary {
+  border: none;
+  border-radius: 18px;
+  padding: 16px 22px;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+}
+
+.cta-primary {
+  background: linear-gradient(135deg, #f4b51e, #a16e00);
+  color: #0b0b0d;
+  font-weight: 700;
+  box-shadow: 0 20px 45px rgba(201, 141, 0, 0.24);
+}
+
+.cta-secondary {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 222, 143, 0.12);
+  color: #f8f1d0;
+}
+
+.cta-primary:hover,
+.cta-secondary:hover {
+  transform: translateY(-1px);
+}
+
+.dashboard-panel {
+  border-radius: 30px;
+  padding: 22px;
+}
+
+.panel-head,
+.section-head,
+.account-row,
+.status-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.status-dot.online {
+  background: #ffca3a;
+  box-shadow: 0 0 0 6px rgba(255, 202, 58, 0.14);
+}
+
+.status-dot.offline {
+  background: #555;
+}
+
+.account-box {
+  margin-top: 18px;
+  border-radius: 26px;
+  padding: 20px;
+}
+
+.eyebrow {
+  color: #baaf88;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.account-name {
+  margin-top: 8px;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.account-handle {
+  margin-top: 6px;
+  color: #ffcf59;
+}
+
+.avatar {
+  width: 68px;
+  height: 68px;
+  border-radius: 22px;
+  object-fit: cover;
+  border: 1px solid rgba(255, 221, 132, 0.2);
+}
+
+.qr-block {
+  margin-top: 22px;
+}
+
+.qr-frame,
+.qr-placeholder {
+  margin-top: 14px;
+  border-radius: 24px;
+  padding: 18px;
+  min-height: 240px;
+  display: grid;
+  place-items: center;
+}
+
+.qr-frame img {
+  width: 100%;
+  max-width: 280px;
+  border-radius: 20px;
+}
+
+.qr-placeholder,
+.locked-box,
+.empty-state {
+  color: #cabf9a;
+  text-align: center;
+  line-height: 1.7;
+}
+
+.error-banner {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(197, 78, 33, 0.15);
+  color: #ffceb4;
+}
+
+.content-grid {
+  position: relative;
+  z-index: 1;
+  margin-top: 26px;
+  display: grid;
+  gap: 22px;
+}
+
+.feature-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.feature-card,
+.feed-card {
+  border-radius: 28px;
+  padding: 24px;
+}
+
+.feature-card ul {
+  margin: 18px 0 0;
+  padding-left: 18px;
+  color: #d9cfaf;
+  line-height: 1.8;
+}
+
+.video-list {
+  margin-top: 18px;
+  display: grid;
+  gap: 16px;
+}
+
+.video-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 20px;
+}
+
+.video-title {
+  margin-top: 6px;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.video-subtitle,
+.status-line {
+  color: #cabf9a;
+}
+
+.video-action {
+  min-width: 72px;
+  text-align: center;
+  padding: 10px 12px;
+  border-radius: 999px;
+  background: rgba(255, 193, 7, 0.15);
+  color: #ffcf59;
+}
+
+@media (max-width: 980px) {
+  .hero-grid,
+  .feature-strip {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .page-shell {
+    padding: 24px 16px 48px;
+  }
+
+  .hero-card,
+  .feature-card,
+  .feed-card {
+    border-radius: 24px;
+    padding: 18px;
+  }
+
+  .dashboard-panel {
+    border-radius: 24px;
+    padding: 18px;
+  }
+}
