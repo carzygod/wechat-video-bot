@@ -214,9 +214,18 @@ export class WeixinHubService {
     }
 
     try {
-      await bot.sendDocument(targetChatId, this.library.resolveAbsolutePath(video.localPath), {
-        caption: video.title,
-      });
+      const absolutePath = this.library.resolveAbsolutePath(video.localPath);
+      if ((video.mimeType ?? "").startsWith("video/")) {
+        await bot.sendVideo(targetChatId, absolutePath, {
+          caption: video.title,
+          contentType: video.mimeType,
+        });
+      } else {
+        await bot.sendDocument(targetChatId, absolutePath, {
+          caption: video.title,
+          contentType: video.mimeType,
+        });
+      }
       return true;
     } catch (error) {
       if (error instanceof MissingContextTokenError) {
