@@ -215,31 +215,17 @@ export class WeixinHubService {
 
     try {
       const absolutePath = this.library.resolveAbsolutePath(video.localPath);
-      if ((video.mimeType ?? "").startsWith("video/")) {
-        const result = await bot.sendVideo(targetChatId, absolutePath, {
-          contentType: video.mimeType,
-        });
-        console.info("[weixin] video sent", {
-          subscriptionId: String(subscription._id),
-          videoId: String(video._id),
-          messageId: result.messageId,
-          targetChatId,
-          localPath: video.localPath,
-          mimeType: video.mimeType,
-        });
-      } else {
-        const result = await bot.sendDocument(targetChatId, absolutePath, {
-          contentType: video.mimeType,
-        });
-        console.info("[weixin] file sent", {
-          subscriptionId: String(subscription._id),
-          videoId: String(video._id),
-          messageId: result.messageId,
-          targetChatId,
-          localPath: video.localPath,
-          mimeType: video.mimeType,
-        });
-      }
+      const result = await bot.sendDocument(targetChatId, absolutePath, {
+        contentType: video.mimeType,
+      });
+      console.info("[weixin] file sent", {
+        subscriptionId: String(subscription._id),
+        videoId: String(video._id),
+        messageId: result.messageId,
+        targetChatId,
+        localPath: video.localPath,
+        mimeType: video.mimeType,
+      });
       return true;
     } catch (error) {
       if (error instanceof MissingContextTokenError) {
