@@ -3,5 +3,8 @@ declare namespace Express {
     auth?: {
       userId: string;
     };
+    admin?: {
+      username: string;
+    };
   }
 }

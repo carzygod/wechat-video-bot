@@ -11,6 +11,7 @@ import { env } from "./config/env.js";
 import { readAuthUserId, requireAuth } from "./middleware/auth.js";
 import { UserModel } from "./models/User.js";
 import { authRouter } from "./routes/auth.js";
+import { createAdminRouter } from "./routes/admin.js";
 import { createSubscriptionRouter } from "./routes/subscriptions.js";
 import { createVideoRouter } from "./routes/videos.js";
 import { VideoCrawlerService } from "./services/videoCrawler.js";
@@ -39,6 +40,7 @@ app.use(morgan("dev"));
 
 app.use("/video", express.static(path.join(appRoot, "video")));
 app.use("/api/auth", authRouter);
+app.use("/api/admin", createAdminRouter(weixinHub));
 app.use("/api/subscriptions", createSubscriptionRouter(weixinHub));
 app.use("/api/videos", createVideoRouter(library));
 

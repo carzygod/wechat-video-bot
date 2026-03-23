@@ -2,19 +2,26 @@ import { MissingContextTokenError, WeixinBot } from "weixin-claw-bot-sdk";
 import type { WeixinBotMessage, WeixinSession } from "weixin-claw-bot-sdk";
 
 import { env } from "../config/env.js";
+import { MessageModel } from "../models/Message.js";
 import { SubscriptionModel } from "../models/Subscription.js";
+import type { SubscriptionDocument } from "../models/Subscription.js";
+import type { UserDocument } from "../models/User.js";
 import { VideoModel, type VideoDocument } from "../models/Video.js";
 import { VideoLibraryService } from "./videoLibrary.js";
 
-const HERO_IMAGE_PATH = new URL("../res/hero.png", import.meta.url);
+const WELCOME_MESSAGE =
+  "欢迎订阅 wikig's channel，本频道当前演示微信订阅、消息收发与管理后台能力。【反诈中心测试】";
 
 type PendingLoginJob = {
   subscriptionId: string;
   bot: WeixinBot;
 };
 
+type MessageSource = "bot" | "admin" | "broadcast";
+
 type SubscriptionLike = {
   _id: unknown;
+  user?: unknown;
   status?: string | null;
   qrCodeUrl?: string | null;
   qrExpiresAt?: Date | null;
@@ -23,7 +30,6 @@ type SubscriptionLike = {
   weixinAccountId?: string | null;
   weixinUserId?: string | null;
   botSession?: unknown;
-  pendingVideoIds?: unknown[];
 };
 
 export class WeixinHubService {
@@ -66,11 +72,32 @@ export class WeixinHubService {
     return subscription;
   }
 
-  async notifyNewVideo(video: VideoDocument): Promise<void> {
-    const subscriptions = await SubscriptionModel.find({ status: "linked" });
-    for (const subscription of subscriptions) {
-      await this.pushOrQueueVideo(subscription, video);
+  async notifyNewVideo(_video: VideoDocument): Promise<void> {
+    // The crawler still stores videos locally, but outbound behavior is now text-only.
+  }
+
+  async sendAdminText(subscriptionId: string, text: string, source: MessageSource = "admin") {
+    const subscription = await SubscriptionModel.findById(subscriptionId);
+    if (!subscription) {
+      throw new Error("Subscription not found");
     }
+
+    const sent = await this.trySendText(subscription, text, subscription.weixinUserId ?? undefined, source);
+    return { ok: sent };
+  }
+
+  async broadcastAdminText(text: string) {
+    const subscriptions = await SubscriptionModel.find({ status: "linked" });
+    let sent = 0;
+    let failed = 0;
+
+    for (const subscription of subscriptions) {
+      const ok = await this.trySendText(subscription, text, subscription.weixinUserId ?? undefined, "broadcast");
+      if (ok) sent++;
+      else failed++;
+    }
+
+    return { sent, failed };
   }
 
   private async awaitLogin(subscriptionId: string, bot: WeixinBot, sessionKey: string): Promise<void> {
@@ -103,7 +130,7 @@ export class WeixinHubService {
 
       if (subscription) {
         await this.attachBot(subscription, bot, session);
-        await this.queueRandomWelcomeVideo(subscription);
+        await this.sendWelcomeMessage(subscription);
       }
     } catch (error) {
       await SubscriptionModel.findByIdAndUpdate(subscriptionId, {
@@ -143,61 +170,24 @@ export class WeixinHubService {
       return;
     }
 
-    await this.flushPendingVideos(subscriptionId, message.chat.id);
     const subscription = await SubscriptionModel.findById(subscriptionId);
-    if (subscription) {
-      await this.trySendHeroImage(subscription, message.chat.id);
-    }
-  }
-
-  private async queueRandomWelcomeVideo(subscription: SubscriptionLike): Promise<void> {
-    await this.trySendHeroImage(subscription);
-  }
-
-  private async flushPendingVideos(subscriptionId: string, chatId: string): Promise<void> {
-    const subscription = await SubscriptionModel.findById(subscriptionId);
-    if (!subscription || !subscription.pendingVideoIds.length) return;
-
-    const pendingVideos = await VideoModel.find({
-      _id: { $in: subscription.pendingVideoIds },
-    }).sort({ createdAt: 1 });
-
-    const deliveredIds: string[] = [];
-    for (const video of pendingVideos) {
-      const delivered = await this.trySendVideo(subscription, video as any, chatId);
-      if (delivered) {
-        deliveredIds.push(String(video._id));
-      } else {
-        break;
-      }
+    if (!subscription) {
+      return;
     }
 
-    if (deliveredIds.length) {
-      await SubscriptionModel.findByIdAndUpdate(subscriptionId, {
-        $pull: {
-          pendingVideoIds: { $in: deliveredIds },
-        },
-      });
-    }
+    await this.recordInboundMessage(subscription, message);
+    await this.trySendText(subscription, WELCOME_MESSAGE, message.chat.id, "bot");
   }
 
-  private async pushOrQueueVideo(
-    subscription: SubscriptionLike,
-    video: VideoDocument,
+  private async sendWelcomeMessage(subscription: SubscriptionLike): Promise<void> {
+    await this.trySendText(subscription, WELCOME_MESSAGE, subscription.weixinUserId ?? undefined, "bot");
+  }
+
+  private async trySendText(
+    subscription: SubscriptionLike | SubscriptionDocument,
+    text: string,
     chatId?: string,
-  ): Promise<void> {
-    const delivered = await this.trySendVideo(subscription, video, chatId);
-    if (!delivered) {
-      await SubscriptionModel.findByIdAndUpdate(subscription._id, {
-        $addToSet: { pendingVideoIds: video._id },
-      });
-    }
-  }
-
-  private async trySendVideo(
-    subscription: SubscriptionLike,
-    video: VideoDocument,
-    chatId?: string,
+    source: MessageSource = "bot",
   ): Promise<boolean> {
     const bot = this.activeBots.get(String(subscription._id));
     if (!bot) {
@@ -210,68 +200,86 @@ export class WeixinHubService {
     }
 
     try {
-      const absolutePath = this.library.resolveAbsolutePath(video.localPath);
-      const result = await bot.sendDocument(targetChatId, absolutePath, {
-        contentType: video.mimeType,
-      });
-      console.info("[weixin] file sent", {
+      const result = await bot.sendMessage(targetChatId, text);
+      await this.recordOutboundMessage(subscription, targetChatId, text, result.messageId, source);
+      console.info("[weixin] text sent", {
         subscriptionId: String(subscription._id),
-        videoId: String(video._id),
         messageId: result.messageId,
         targetChatId,
-        localPath: video.localPath,
-        mimeType: video.mimeType,
+        source,
       });
       return true;
     } catch (error) {
       if (error instanceof MissingContextTokenError) {
         return false;
       }
-      console.error("[weixin] push failed", {
+      console.error("[weixin] text push failed", {
         subscriptionId: String(subscription._id),
-        videoId: String(video._id),
+        targetChatId,
+        source,
         error,
       });
       return false;
     }
   }
 
-  private async trySendHeroImage(
-    subscription: SubscriptionLike,
-    chatId?: string,
-  ): Promise<boolean> {
-    const bot = this.activeBots.get(String(subscription._id));
-    if (!bot) {
-      return false;
+  private async recordInboundMessage(subscription: SubscriptionDocument | SubscriptionLike, message: WeixinBotMessage) {
+    const subscriptionDoc =
+      "user" in subscription && subscription.user
+        ? subscription
+        : await SubscriptionModel.findById(subscription._id).lean();
+    if (!subscriptionDoc?.user) return;
+
+    const text = this.extractMessageText(message);
+    if (!text) return;
+
+    await MessageModel.create({
+      subscription: subscriptionDoc._id,
+      user: subscriptionDoc.user,
+      direction: "inbound",
+      source: "user",
+      weixinUserId: message.chat.id,
+      text,
+      messageId: message.messageId,
+      metadata: {
+        type: message.type,
+      },
+    });
+  }
+
+  private async recordOutboundMessage(
+    subscription: SubscriptionDocument | SubscriptionLike,
+    weixinUserId: string,
+    text: string,
+    messageId: string,
+    source: MessageSource,
+  ) {
+    const subscriptionDoc =
+      "user" in subscription && subscription.user
+        ? subscription
+        : await SubscriptionModel.findById(subscription._id).lean();
+    if (!subscriptionDoc?.user) return;
+
+    await MessageModel.create({
+      subscription: subscriptionDoc._id,
+      user: subscriptionDoc.user,
+      direction: "outbound",
+      source,
+      weixinUserId,
+      text,
+      messageId,
+    });
+  }
+
+  private extractMessageText(message: WeixinBotMessage): string {
+    if (typeof message.text === "string" && message.text.trim()) {
+      return message.text.trim();
     }
 
-    const targetChatId = chatId ?? subscription.weixinUserId ?? undefined;
-    if (!targetChatId) {
-      return false;
+    if (message.caption && message.caption.trim()) {
+      return message.caption.trim();
     }
 
-    try {
-      const result = await bot.sendPhoto(targetChatId, HERO_IMAGE_PATH, {
-        contentType: "image/png",
-      });
-      console.info("[weixin] hero image sent", {
-        subscriptionId: String(subscription._id),
-        messageId: result.messageId,
-        targetChatId,
-        heroImagePath: HERO_IMAGE_PATH.pathname,
-      });
-      return true;
-    } catch (error) {
-      if (error instanceof MissingContextTokenError) {
-        return false;
-      }
-      console.error("[weixin] hero image push failed", {
-        subscriptionId: String(subscription._id),
-        targetChatId,
-        heroImagePath: HERO_IMAGE_PATH.pathname,
-        error,
-      });
-      return false;
-    }
+    return `[${message.type}]`;
   }
 }

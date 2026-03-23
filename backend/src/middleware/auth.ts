@@ -9,6 +9,10 @@ export function signSessionToken(userId: string): string {
   return jwt.sign({ sub: userId }, env.JWT_SECRET, { expiresIn: "7d" });
 }
 
+export function signAdminToken(username: string): string {
+  return jwt.sign({ sub: username, role: "admin" }, env.JWT_SECRET, { expiresIn: "7d" });
+}
+
 export function getSessionCookieName(): string {
   return COOKIE_NAME;
 }
@@ -50,4 +54,24 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
 
   req.auth = { userId };
   next();
+}
+
+export function requireAdmin(req: Request, res: Response, next: NextFunction): void {
+  const token = getRequestToken(req);
+  if (!token) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  try {
+    const payload = jwt.verify(token, env.JWT_SECRET) as { sub?: string; role?: string };
+    if (payload.role !== "admin" || !payload.sub) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    req.admin = { username: payload.sub };
+    next();
+  } catch {
+    res.status(401).json({ error: "Unauthorized" });
+  }
 }

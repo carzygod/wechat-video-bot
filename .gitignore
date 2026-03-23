@@ -11,5 +11,9 @@ frontend/.env
 frontend/.env.local
 frontend/.env.*
 !frontend/.env.example
+admin/.env
+admin/.env.local
+admin/.env.*
+!admin/.env.example
 video/*
 !video/.gitkeep
